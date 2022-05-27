@@ -998,11 +998,13 @@ class Worker:
         with self.connection.pipeline() as pipeline:
             while True:
                 try:
-                    # if dependencies are inserted after enqueue_dependents
-                    # a WatchError is thrown by execute()
-                    pipeline.watch(job.dependents_key)
-                    # enqueue_dependents calls multi() on the pipeline!
-                    queue.enqueue_dependents(job, pipeline=pipeline)
+                    # a patch to enable use of RedisCluster
+                    if not isinstance(pipeline, redis.cluster.ClusterPipeline):
+                        # if dependencies are inserted after enqueue_dependents
+                        # a WatchError is thrown by execute()
+                        pipeline.watch(job.dependents_key)
+                        # enqueue_dependents calls multi() on the pipeline!
+                        queue.enqueue_dependents(job, pipeline=pipeline)
 
                     self.set_current_job_id(None, pipeline=pipeline)
                     self.increment_successful_job_count(pipeline=pipeline)
